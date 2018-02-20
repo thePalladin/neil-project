@@ -2,6 +2,10 @@ from selenium import webdriver
 from selenium.common.exceptions import StaleElementReferenceException
 from selenium.common.exceptions import NoSuchElementException
 import selenium.webdriver.support.ui as UI
+from pymongo import MongoClient
+client = MongoClient();
+db = client.AllData;
+collectionData = db.scrapped;
 import time
 import json
 import sys
@@ -27,8 +31,11 @@ statelist = []
 
 for i in area.keys():
     statelist.append(i)
+
+print("##state list");
+print(statelist);
 stDate = driver.find_element_by_id("stDate")
-endDate = driver.find_element_by_id("endDate")
+edDate = driver.find_element_by_id("endDate")
 
 # sectorInput = driver.find_element_by_id("categoryId")
 search = driver.find_element_by_id("searchbutton")
@@ -36,6 +43,8 @@ search = driver.find_element_by_id("searchbutton")
 
 Sector = UI.Select(driver.find_element_by_id("categoryId"))
 # sectors
+print("##Sector");
+print(Sector);
 
 
 sectors = []
@@ -43,6 +52,8 @@ for option in Sector.options:
         sectors.append(option.text)
 sectors = sectors[1:]
 
+print("##sector");
+print(sectors);
 
 stateId = UI.Select(driver.find_element_by_id("stateId"))
 year = 2012
@@ -50,10 +61,16 @@ time.sleep(3)
 while year<2019:
 
     stDate.clear()
-    stDate.send_keys("01/01/"+str(year))
-    endDate.clear()
-    endDate.send_keys("31/12/"+str(year))
+    edDate.clear();
+
+    startDate = "01/01/"+str(year);
+    endDate = "31/12/"+str(year);
+
+    stDate.send_keys(startDate);
+    edDate.send_keys(endDate);
+
     year = year + 1
+
     for state in statelist:
         print(state)
 #             stateId.clear()
@@ -73,8 +90,35 @@ while year<2019:
                 time.sleep(2)
                 try:
                     table = driver.find_element_by_id("para1")
+                    
+                    case = driver.find_element_by_css_selector("#placeholder1 > table:nth-child(2) > tbody:nth-child(1) > tr:nth-child(2) > td:nth-child(1) > a:nth-child(1)");
+                    complainant = driver.find_element_by_css_selector("#placeholder1 > table:nth-child(2) > tbody:nth-child(1) > tr:nth-child(2) > td:nth-child(2)");
+                    respondent = driver.find_element_by_css_selector("#placeholder1 > table:nth-child(2) > tbody:nth-child(1) > tr:nth-child(2) > td:nth-child(3)");
+                    complainantAdv = driver.find_element_by_css_selector("#placeholder1 > table:nth-child(2) > tbody:nth-child(1) > tr:nth-child(2) > td:nth-child(4)");
+                    respondentAdv = driver.find_element_by_css_selector("#placeholder1 > table:nth-child(2) > tbody:nth-child(1) > tr:nth-child(2) > td:nth-child(5)");
+                    dateOfDisposal = driver.find_element_by_css_selector("#placeholder1 > table:nth-child(2) > tbody:nth-child(1) > tr:nth-child(2) > td:nth-child(6)");
+                    dateOfUpload = driver.find_element_by_css_selector("#placeholder1 > table:nth-child(2) > tbody:nth-child(1) > tr:nth-child(2) > td:nth-child(7)");
+                    getPDF = driver.find_element_by_css_selector("#placeholder1 > table:nth-child(2) > tbody:nth-child(1) > tr:nth-child(2) > td:nth-child(8) > a:nth-child(1)").get_attribute("href");
+
                     if table.text[0] == 'S':
-                        print(sect +"Exists")
+
+                        finalData = {
+                        'startDate' : startDate,
+                        'endDate' : endDate,
+                        'State' : state,
+                        'District' : district,
+                        'Sector' : sect,
+                        'CaseNo' : case.text,
+                        'Complainant' : complainant.text,
+                        'Respondent' : respondent.text,
+                        'ComplainantAdv' : complainantAdv.text,
+                        'RespondentAdv' : respondentAdv.text,
+                        'dateOfDisposal' : dateOfDisposal.text,
+                        'dateOfUpload' : dateOfUpload.text,
+                        'PDF' : getPDF
+                        }
+                        print(finalData);
+                        collectionData.insert_one(finalData);
                     else:
                         print(sect+'NO')
                 except NoSuchElementException:
